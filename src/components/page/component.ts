@@ -1,7 +1,13 @@
 export interface Component {
   attachTo(parent: HTMLElement, position?: InsertPosition): void;
   removeFrom(parent: HTMLElement): void;
+  attach(component: Component, position?: InsertPosition): void;
+  registerEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any
+  ): void;
 }
+
 /**
  * Encapsulate the HTML element creation
  */
@@ -23,5 +29,17 @@ export class BaseComponent<T extends HTMLElement> implements Component {
       throw new Error("Parent mismatch!");
     }
     parent.removeChild(this.element);
+  }
+
+  attach(component: Component, position: InsertPosition = "afterbegin") {
+    component.attachTo(this.element, position);
+  }
+
+  // The same signature as the HTMLElement.addEventListener method
+  registerEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any
+  ): void {
+    this.element.addEventListener(type, listener);
   }
 }
