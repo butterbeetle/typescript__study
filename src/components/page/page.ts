@@ -14,6 +14,7 @@ type OnDragStateListener<T extends Component> = (
 interface SectinoContainer extends Component, Composable {
   setOnCloseListener(listener: OnCloseListener): void;
   setOnDragStateListener(listener: OnDragStateListener<SectinoContainer>): void;
+  muteChildren(state: "mute" | "unmute"): void;
 }
 
 type SectinoContainerConstructor = {
@@ -84,12 +85,23 @@ export class pageItemComponent
   setOnDragStateListener(listener: OnDragStateListener<pageItemComponent>) {
     this.dragStateListener = listener;
   }
+
+  muteChildren(state: "mute" | "unmute") {
+    if (state === "mute") {
+      this.element.classList.add("mute-children");
+    } else {
+      this.element.classList.remove("mute-children");
+    }
+  }
 }
 
 export class pageComponent
   extends BaseComponent<HTMLUListElement>
   implements Composable
 {
+  private children = new Set<SectinoContainer>();
+  private dropTarget?: SectinoContainer;
+  private dragTarget?: SectinoContainer;
   constructor(private pageItemConstructor: SectinoContainerConstructor) {
     super(`
     <ul class="page"></ul>
@@ -109,6 +121,14 @@ export class pageComponent
   onDrop(event: DragEvent) {
     event.preventDefault();
     console.log("onDrop");
+    // 여기에서 위치 바꾸기
+    if (!this.dropTarget) {
+      return;
+    }
+    if (this.dragTarget && this.dragTarget !== this.dropTarget) {
+      this.dragTarget.removeFrom(this.element);
+      this.dropTarget.attach(this.dragTarget, "beforebegin");
+    }
   }
 
   addChild(section: Component) {
@@ -117,11 +137,36 @@ export class pageComponent
     item.attachTo(this.element, "beforeend");
     item.setOnCloseListener(() => {
       item.removeFrom(this.element);
+      this.children.delete(item);
     });
+    this.children.add(item);
     item.setOnDragStateListener(
       (target: SectinoContainer, state: DragState) => {
-        console.log(target, state);
+        switch (state) {
+          case "start":
+            this.dragTarget = target;
+            this.updateSections("mute");
+            break;
+          case "stop":
+            this.dragTarget = undefined;
+            this.updateSections("unmute");
+            break;
+          case "enter":
+            this.dropTarget = target;
+            break;
+          case "leave":
+            this.dropTarget = undefined;
+            break;
+          default:
+            throw new Error(`Unsupported State: ${state}`);
+        }
       }
     );
+  }
+
+  private updateSections(state: "mute" | "unmute") {
+    this.children.forEach((section: SectinoContainer) => {
+      section.muteChildren(state);
+    });
   }
 }
