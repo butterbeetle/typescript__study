@@ -16,6 +16,7 @@ interface SectinoContainer extends Component, Composable {
   setOnDragStateListener(listener: OnDragStateListener<SectinoContainer>): void;
   muteChildren(state: "mute" | "unmute"): void;
   getBoundingRect(): DOMRect;
+  onDropped(): void;
 }
 
 type SectinoContainerConstructor = {
@@ -57,17 +58,22 @@ export class pageItemComponent
 
   onDragStart(_: DragEvent) {
     this.notifyDragObservers("start");
+    this.element.classList.add("lifted");
   }
   onDragEnd(_: DragEvent) {
     this.notifyDragObservers("stop");
+    this.element.classList.remove("lifted");
   }
   onDragEnter(_: DragEvent) {
     this.notifyDragObservers("enter");
+    this.element.classList.add("drop-area");
   }
   onDragLeave(_: DragEvent) {
     this.notifyDragObservers("leave");
   }
-
+  onDropped(): void {
+    this.element.classList.remove("drop-area");
+  }
   notifyDragObservers(state: DragState) {
     this.dragStateListener && this.dragStateListener(this, state);
   }
@@ -121,12 +127,9 @@ export class pageComponent
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
-    console.log("onDrageOver");
   }
   onDrop(event: DragEvent) {
     event.preventDefault();
-    console.log("onDrop");
-    // 여기에서 위치 바꾸기
     if (!this.dropTarget) {
       return;
     }
@@ -139,6 +142,7 @@ export class pageComponent
         dropY < srcElement.y ? "beforebegin" : "afterend"
       );
     }
+    this.dropTarget.onDropped();
   }
 
   addChild(section: Component) {
