@@ -1,3 +1,9 @@
+import {
+  EnableDragging,
+  EnableDrop,
+  EnableHover,
+} from "../../decorators/draggable.js";
+import { Draggable, Droppable, Hoverable } from "./common/type.js";
 import { BaseComponent, Component } from "./component.js";
 
 export interface Composable {
@@ -11,7 +17,7 @@ type OnDragStateListener<T extends Component> = (
   state: DragState
 ) => void;
 
-interface SectinoContainer extends Component, Composable {
+interface SectinoContainer extends Component, Composable, Draggable, Hoverable {
   setOnCloseListener(listener: OnCloseListener): void;
   setOnDragStateListener(listener: OnDragStateListener<SectinoContainer>): void;
   muteChildren(state: "mute" | "unmute"): void;
@@ -22,7 +28,8 @@ interface SectinoContainer extends Component, Composable {
 type SectinoContainerConstructor = {
   new (): SectinoContainer;
 };
-
+@EnableDragging
+@EnableHover
 export class pageItemComponent
   extends BaseComponent<HTMLElement>
   implements SectinoContainer
@@ -42,18 +49,6 @@ export class pageItemComponent
     closeBtn.onclick = () => {
       this.closeListener && this.closeListener();
     };
-    this.element.addEventListener("dragstart", (event: DragEvent) => {
-      this.onDragStart(event);
-    });
-    this.element.addEventListener("dragend", (event: DragEvent) => {
-      this.onDragEnd(event);
-    });
-    this.element.addEventListener("dragenter", (event: DragEvent) => {
-      this.onDragEnter(event);
-    });
-    this.element.addEventListener("dragleave", (event: DragEvent) => {
-      this.onDragLeave(event);
-    });
   }
 
   onDragStart(_: DragEvent) {
@@ -106,9 +101,10 @@ export class pageItemComponent
   }
 }
 
+@EnableDrop
 export class pageComponent
   extends BaseComponent<HTMLUListElement>
-  implements Composable
+  implements Composable, Droppable
 {
   private children = new Set<SectinoContainer>();
   private dropTarget?: SectinoContainer;
@@ -125,11 +121,8 @@ export class pageComponent
     });
   }
 
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
+  onDragOver(_: DragEvent) {}
   onDrop(event: DragEvent) {
-    event.preventDefault();
     if (!this.dropTarget) {
       return;
     }
